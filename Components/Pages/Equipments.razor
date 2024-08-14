@@ -1,0 +1,227 @@
+﻿@page "/equipments"
+@using InventoryManagement.Data
+@using Microsoft.Data.SqlClient
+@using Blazorise
+
+<h3>Equipments</h3>
+<div class="equipment-table">
+	<Table>
+		<TableHeader>
+			<TableRow>
+				<TableHeaderCell>Equipment ID</TableHeaderCell>
+				<TableHeaderCell>Category ID</TableHeaderCell>
+				<TableHeaderCell>Name</TableHeaderCell>
+				<TableHeaderCell>Description</TableHeaderCell>
+				<TableHeaderCell>Daily Rate</TableHeaderCell>
+			</TableRow>
+		</TableHeader>
+		<TableBody>
+			@if (equipList != null && equipList.Count > 0)
+			{
+				@foreach (var equipment in equipList)
+				{
+					<TableRow @onclick="() => SelectEquip(equipment)" class="@(IsSelected(equipment) ? "selected-row" : "")">
+						<TableRowCell>@equipment.EquipmentId</TableRowCell>
+						<TableRowCell>@equipment.CategoryId</TableRowCell>
+						<TableRowCell>@equipment.EquipmentName</TableRowCell>
+						<TableRowCell>@equipment.Description</TableRowCell>
+						<TableRowCell>@equipment.DailyRate </TableRowCell>
+					</TableRow>
+				}
+			}
+			else
+			{
+				<TableRow>
+					<TableRowCell colspan="6">No data available.</TableRowCell>
+				</TableRow>
+			}
+		</TableBody>
+	</Table>
+</div>
+
+
+<EditForm Model="@equip">
+	<br />
+	<div class="col">
+		<label for="validationDefault04">Equipment ID:</label>
+		<input type="text" class="form-control form-control-sm" id="EquipmentId" name="EquipmentId" @bind="@equip.EquipmentId">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Category ID:</label>
+		<input type="text" class="form-control form-control-sm" id="CategoryId" name="CategoryId" @bind="@equip.CategoryId">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Name:</label>
+		<input type="text" class="form-control form-control-sm" id="EquipmentName" name="EquipmentName" @bind="@equip.EquipmentName">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Description:</label>
+		<input type="text" class="form-control form-control-sm" id="Description" name="Description" @bind="@equip.Description">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Daily Rate:</label>
+		<input type="text" class="form-control form-control-sm" id="DailyRate" name="DailyRate" @bind="@equip.DailyRate">
+	</div>
+	<div class="row-button">
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="AddEquipment">ADD</button>
+		</div>
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="UpdateEquipment">UPDATE</button>
+		</div>
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="DeleteEquipment">DELETE</button>
+		</div>
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="ClearForm">CLEAR</button>
+		</div>
+	</div>
+
+</EditForm>
+
+
+
+@code {
+	public Equipment equip = new Equipment();
+
+	public List<Equipment> equipList = new List<Equipment>();
+
+	//Loads the list of equipments when the component initializes
+	protected override async Task OnInitializedAsync()
+	{
+		equipList = await LoadEquipment();
+	}
+
+	//Reloads the list of equipments from the database
+	public async Task ReloadEquipment()
+	{
+		equipList = await LoadEquipment();
+	}
+
+	//Sets the current equipments object with the details of the selected equipments from the table
+	//Updates the form fields with the selected equipments's details and marks the row as selected
+	private void SelectEquip(Equipment SelectedEquip)
+	{
+		//Set the selected equipments for editing
+		equip = new Equipment
+			{
+				EquipmentId = SelectedEquip.EquipmentId,
+				CategoryId = SelectedEquip.CategoryId,
+				EquipmentName = SelectedEquip.EquipmentName,
+				Description = SelectedEquip.Description,
+				DailyRate = SelectedEquip.DailyRate
+			};
+	}
+
+
+	//Checks if the given equipments is currently selected for editing
+	private bool IsSelected(Equipment e)
+	{
+		if (e == null)
+		{
+			return false;
+		}
+
+		return e.EquipmentId == equip.EquipmentId;
+	}
+
+
+	//Clears the form fields and resets the equipments selection
+	private void ClearForm()
+	{
+		equip = new Equipment();
+	}
+
+
+	//Method to load equipments from database
+	public async Task<List<Equipment>> LoadEquipment()
+	{
+		var equipments = new List<Equipment>();
+		string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Inventory;Integrated Security=True";
+		SqlConnection connection = new SqlConnection(connectionString);
+
+		connection.Open();
+		SqlCommand command = new SqlCommand("SELECT * from equipment", connection);
+
+		SqlDataReader reader = await command.ExecuteReaderAsync();
+
+		while (await reader.ReadAsync())
+		{
+			equipments.Add(new Equipment
+				(
+					reader.GetInt32(0),
+					reader.GetInt32(1),
+					reader.GetString(2),
+					reader.GetString(3),
+					(float)reader.GetDouble(4)
+				));
+		}
+		return equipments;
+	}
+
+
+	//Adds a new equipment to the database
+	//Performs validation, checks for existing equipment id, and displays success or error messages based on the result
+	public async void AddEquipment()
+	{
+		string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Inventory;Integrated Security=True";
+		SqlConnection connection = new SqlConnection(connectionString);
+		connection.Open();
+
+		//Check if the equipment id already exists
+		string query = "select count(1) from equipment where equipment_id = @EquipmentId";
+		SqlCommand command = new SqlCommand(query, connection);
+		command.Parameters.AddWithValue("@EquipmentId", equip.EquipmentId);
+		int result = (int)await command.ExecuteScalarAsync();
+
+		if (result > 0)
+		{
+			await Application.Current.MainPage.DisplayAlert("Error", "The Equipment ID already exists.", "OK");
+		}
+		else
+		{
+			SqlCommand cmd = new SqlCommand("insert into equipment values (@EquipmentId, @CategoryId, @EquipmentName, @Description, @DailyRate)", connection);
+
+			cmd.Parameters.AddWithValue("@EquipmentId", equip.EquipmentId);
+			cmd.Parameters.AddWithValue("@CategoryId", equip.CategoryId);
+			cmd.Parameters.AddWithValue("@EquipmentName", equip.EquipmentName);
+			cmd.Parameters.AddWithValue("@Description", equip.Description);
+			cmd.Parameters.AddWithValue("@DailyRate", equip.DailyRate);
+
+			cmd.ExecuteNonQuery();
+			await Application.Current.MainPage.DisplayAlert("Success", "Equipment Added Successfully", "OK");
+
+			ClearForm();
+			await ReloadEquipment();
+			StateHasChanged();
+		}
+	}
+
+	public async void UpdateEquipment()
+	{
+
+	}
+
+	public async void DeleteEquipment()
+	{
+		string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Sample;Integrated Security=True";
+		SqlConnection connection = new SqlConnection(connectionString);
+		connection.Open();
+
+		SqlCommand cmd = new SqlCommand("delete from equipment where equipment_id = @EquipmentId", connection);
+
+		cmd.Parameters.AddWithValue("@EquipmentId", equip.EquipmentId);
+
+		cmd.ExecuteNonQuery();
+
+		await Application.Current.MainPage.DisplayAlert("Success", "Equipment Deleted Successfully", "OK");
+
+		ClearForm();
+		await ReloadEquipment();
+		StateHasChanged();
+	}
+}

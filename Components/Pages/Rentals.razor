@@ -1,0 +1,249 @@
+﻿@page "/rentals"
+@using InventoryManagement.Data
+@using Microsoft.Data.SqlClient
+@using Blazorise
+@using System.Data.SqlTypes;
+
+<h3>Rentals</h3>
+
+<Div Class="select-section">
+	<Div Class="customer-selection">
+<h5>Select a customer</h5>
+<EditForm Model="@cus">
+			<Select @bind-SelectedValue="@cus.CustomerId" @onchange="LoadSelectedCustomer">
+		<SelectItem Value="0">Please select</SelectItem>
+		@foreach (var customer in cusList)
+		{
+			<SelectItem Value="@customer.CustomerId">@customer.FirstName @customer.LastName</SelectItem>
+		}
+	</Select>
+
+	<br />
+	<div class="col">
+		<label for="validationDefault04">Customer ID:</label>
+		<input type="text" class="form-control form-control-sm" id="customerId" name="customerId" @bind="@cus.CustomerId" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">First Name:</label>
+				<input type="text" class="form-control form-control-sm" id="firstName" name="firstName" @bind="@cus.FirstName" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Last Name:</label>
+		<input type="text" class="form-control form-control-sm" id="lastName" name="lastName" @bind="@cus.LastName" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Phone:</label>
+				<input type="text" class="form-control form-control-sm" id="phone" name="phone" @bind="@cus.ContactPhone" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Email:</label>
+				<input type="text" class="form-control form-control-sm" id="email" name="email" @bind="@cus.Email" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Notes:</label>
+				<input type="text" class="form-control form-control-sm" id="notes" name="notes" @bind="@cus.Note" disabled>
+	</div>
+</EditForm>
+	</Div>
+
+
+	<Div Class="equipment-selection">
+<h5>Select an equipment</h5>
+<EditForm Model="@equip">
+	<Select @bind-SelectedValue="@equip.EquipmentId" @onchange="LoadSelectedEquipment">
+		<SelectItem Value="0">Please select</SelectItem>
+		@foreach (var equipment in equipList)
+		{
+			<SelectItem Value="@equipment.EquipmentId">@equipment.EquipmentName</SelectItem>
+		}
+	</Select>
+
+	<br />
+	<div class="col">
+		<label for="validationDefault04">Equipment ID:</label>
+		<input type="text" class="form-control form-control-sm" id="EquipmentId" name="EquipmentId" @bind="@equip.EquipmentId" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Category ID:</label>
+		<input type="text" class="form-control form-control-sm" id="CategoryId" name="CategoryId" @bind="@equip.CategoryId" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Name:</label>
+		<input type="text" class="form-control form-control-sm" id="EquipmentName" name="EquipmentName" @bind="@equip.EquipmentName" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Description:</label>
+		<input type="text" class="form-control form-control-sm" id="Description" name="Description" @bind="@equip.Description" disabled>
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Daily Rate:</label>
+		<input type="text" class="form-control form-control-sm" id="DailyRate" name="DailyRate" @bind="@equip.DailyRate" disabled>
+	</div>
+	</EditForm>
+</Div>
+</Div>
+
+
+	<EditForm Model="rental">
+		<br />
+	<div class="form-group">
+		<label>Rental Date</label>
+		<DateEdit @bind-Date="@rental.RentalDate" />
+	</div>
+	<br />
+	<div class="form-group">
+		<label>Return Date</label>
+		<DateEdit @bind-Date="@rental.ReturnDate" />
+	</div>
+	<br />
+	<div class="form-group">
+		<label>Total Cost</label>
+		<InputText @bind-Value="@totalCostString" ReadOnly="true" />
+	</div>
+	<br />
+
+	<div class="row-button">
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="CalculateCost">CALCULATE COST</button>
+		</div>
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="ReserveEquipment">RENT</button>
+		</div>
+	</div>
+
+</EditForm>
+
+
+
+
+
+@code {
+
+	public Customer cus = new Customer();
+	public List<Customer> cusList = new List<Customer>();
+
+	public Equipment equip = new Equipment();
+	public List<Equipment> equipList = new List<Equipment>();
+
+	public Rental rental = new Rental();
+
+	protected override void OnInitialized()
+	{
+		rental.RentalDate = DateTime.Today;
+		rental.ReturnDate = DateTime.Today;
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		cusList = await LoadCustomer();
+		equipList = await LoadEquipment();
+	}
+
+
+	public async Task<List<Customer>> LoadCustomer()
+	{
+		var customers = new List<Customer>();
+		string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Inventory;Integrated Security=True";
+		SqlConnection connection = new SqlConnection(connectionString);
+
+		connection.Open();
+		SqlCommand command = new SqlCommand("SELECT * from customer", connection);
+
+		SqlDataReader reader = await command.ExecuteReaderAsync();
+
+		while (await reader.ReadAsync())
+		{
+			customers.Add(new Customer
+				(
+					reader.GetInt32(0),
+					reader.GetString(1),
+					reader.GetString(2),
+					reader.GetString(3),
+					reader.GetString(4),
+					reader.GetString(5)
+				));
+		}
+
+		return customers;
+	}
+
+
+
+	public async Task<List<Equipment>> LoadEquipment()
+	{
+		var equipments = new List<Equipment>();
+		string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Inventory;Integrated Security=True";
+		SqlConnection connection = new SqlConnection(connectionString);
+
+		connection.Open();
+		SqlCommand command = new SqlCommand("SELECT * from equipment", connection);
+
+		SqlDataReader reader = await command.ExecuteReaderAsync();
+
+		while (await reader.ReadAsync())
+		{
+			equipments.Add(new Equipment
+				(
+					reader.GetInt32(0),
+					reader.GetInt32(1),
+					reader.GetString(2),
+					reader.GetString(3),
+					(float)reader.GetDouble(4)
+				));
+		}
+		return equipments;
+	}
+
+	private int selectedEquipmentId;
+	private void LoadSelectedEquipment(ChangeEventArgs e)
+	{
+		selectedEquipmentId = int.Parse(e.Value.ToString());
+		equip = equipList.FirstOrDefault(eq => eq.EquipmentId == selectedEquipmentId);
+
+	}
+
+	private int selectedCustomerId;
+	private void LoadSelectedCustomer(ChangeEventArgs e)
+	{
+		selectedCustomerId = int.Parse(e.Value.ToString());
+		cus = cusList.FirstOrDefault(customer => customer.CustomerId == selectedCustomerId);
+
+	}
+
+	double totalCost;
+	string totalCostString;
+	public void CalculateCost()
+	{
+		var equipment = equipList.FirstOrDefault(e => e.EquipmentId == selectedEquipmentId);
+		if (equipment != null && rental.RentalDate != DateTime.MinValue && rental.ReturnDate != DateTime.MinValue)
+		{
+			int rentalDays = (rental.ReturnDate - rental.RentalDate).Days;
+			totalCost = Math.Round(rentalDays * equipment.DailyRate, 2);
+		}
+
+		totalCostString = totalCost.ToString();
+	}
+
+	public async void ReserveEquipment()
+	{
+		string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Inventory;Integrated Security=True";
+		SqlConnection connection = new SqlConnection(connectionString);
+		connection.Open();
+
+		SqlCommand cmd = new SqlCommand("insert into rental values (@RentalId, @Date, @CustomerId, @EquipmentId, @RentalDate, @ReturnDate, @Cost)", connection);
+
+		cmd.Parameters.AddWithValue("@RentalId", rental.RentalId);
+		cmd.Parameters.AddWithValue("@Date", DateTime.Now);
+		cmd.Parameters.AddWithValue("@CustomerId", cus.CustomerId);
+		cmd.Parameters.AddWithValue("@EquipmentId", equip.EquipmentId);
+		cmd.Parameters.AddWithValue("@RentalDate", rental.RentalDate);
+		cmd.Parameters.AddWithValue("@ReturnDate", rental.ReturnDate);
+		cmd.Parameters.AddWithValue("@Cost", totalCost);
+
+		cmd.ExecuteNonQuery();
+		await Application.Current.MainPage.DisplayAlert("Success", "Equipment reserved successfully!", "OK");
+	}
+
+}

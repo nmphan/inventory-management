@@ -1,0 +1,224 @@
+﻿@page "/customers"
+@using InventoryManagement.Data
+@using Microsoft.Data.SqlClient
+@using Blazorise
+
+<h3>Customers</h3>
+<div class="customer-table">
+	<Table>
+		<TableHeader>
+			<TableRow>
+				<TableHeaderCell>Customer ID</TableHeaderCell>
+				<TableHeaderCell>First Name</TableHeaderCell>
+				<TableHeaderCell>Last Name</TableHeaderCell>
+				<TableHeaderCell>Phone</TableHeaderCell>
+				<TableHeaderCell>Email</TableHeaderCell>
+				<TableHeaderCell>Note</TableHeaderCell>
+			</TableRow>
+		</TableHeader>
+		<TableBody>
+			@if (cusList != null && cusList.Count > 0)
+			{
+				@foreach (var customer in cusList)
+				{
+					<TableRow @onclick="() => SelectedCus(customer)" class="@(IsSelected(customer) ? "selected-row" : "")">
+						<TableRowCell>@customer.CustomerId</TableRowCell>
+						<TableRowCell>@customer.FirstName</TableRowCell>
+						<TableRowCell>@customer.LastName</TableRowCell>
+						<TableRowCell>@customer.ContactPhone</TableRowCell>
+						<TableRowCell>@customer.Email </TableRowCell>
+						<TableRowCell>@customer.Note</TableRowCell>
+					</TableRow>
+				}
+			}
+			else
+			{
+				<TableRow>
+					<TableRowCell colspan="6">No data available.</TableRowCell>
+				</TableRow>
+			}
+		</TableBody>
+	</Table>
+</div>
+
+
+<EditForm Model="@cus">
+	<br />
+	<div class="col">
+		<label for="validationDefault04">Customer ID:</label>
+		<input type="text" class="form-control form-control-sm" id="customerId" name="customerId" @bind="@cus.CustomerId">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">First Name:</label>
+		<input type="text" class="form-control form-control-sm" id="firstName" name="firstName" @bind="@cus.FirstName">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Last Name:</label>
+		<input type="text" class="form-control form-control-sm" id="lastName" name="lastName" @bind="@cus.LastName">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Phone:</label>
+		<input type="text" class="form-control form-control-sm" id="phone" name="phone" @bind="@cus.ContactPhone">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Email:</label>
+		<input type="text" class="form-control form-control-sm" id="email" name="email" @bind="@cus.Email">
+	</div>
+	<div class="col">
+		<label for="validationDefault05">Notes:</label>
+		<input type="text" class="form-control form-control-sm" id="notes" name="notes" @bind="@cus.Note">
+	</div>
+	<div class="row-button">
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="AddNewCustomer">ADD</button>
+		</div>
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="UpdateCustomer">UPDATE</button>
+		</div>
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="DeleteCustomer">DELETE</button>
+		</div>
+		<div class="col-button">
+			<br />
+			<button type="button" class="btn btn-primary btn-lg btn-block" @onclick="ClearForm">CLEAR</button>
+		</div>
+	</div>
+
+</EditForm>
+
+
+
+	@code {
+		public Customer cus = new Customer();
+
+		public List<Customer> cusList = new List<Customer>();
+
+		//Loads the list of books when the component initializes
+		protected override async Task OnInitializedAsync()
+		{
+			cusList = await LoadCustomer();
+		}
+
+		//Reloads the list of books from the database
+		public async Task ReloadCustomer()
+		{
+			cusList = await LoadCustomer();
+		}
+
+		//Sets the current customer object with the details of the selected customer from the table
+		//Updates the form fields with the selected customer's details and marks the row as selected
+		private void SelectedCus(Customer selectedCus)
+		{
+			//Set the selected customer for editing
+			cus = new Customer
+			{
+				CustomerId = selectedCus.CustomerId,
+				FirstName = selectedCus.FirstName,
+				LastName = selectedCus.LastName,
+				ContactPhone = selectedCus.ContactPhone,
+				Email = selectedCus.Email,
+				Note = selectedCus.Note
+			};
+		}
+
+
+		//Checks if the given customer is currently selected for editing
+		private bool IsSelected(Customer c)
+		{
+			if (c == null)
+			{
+				return false;
+			}
+
+			return c.CustomerId == cus.CustomerId;
+		}
+
+
+		//Clears the form fields and resets the customer selection
+		private void ClearForm()
+		{
+			cus = new Customer();
+		}
+
+
+		//Method to load customer from database
+		public async Task<List<Customer>> LoadCustomer()
+		{
+			var customers = new List<Customer>();
+			string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Inventory;Integrated Security=True";
+			SqlConnection connection = new SqlConnection(connectionString);
+
+			connection.Open();
+			SqlCommand command = new SqlCommand("SELECT * from customer", connection);
+
+			SqlDataReader reader = await command.ExecuteReaderAsync();
+
+			while (await reader.ReadAsync())
+			{
+				customers.Add(new Customer
+					(
+						reader.GetInt32(0),
+						reader.GetString(1),
+						reader.GetString(2),
+						reader.GetString(3),
+						reader.GetString(4),
+						reader.GetString(5)
+					));
+			}
+
+			return customers;
+		}
+
+
+		//Adds a new customer to the database
+		//Performs validation, checks for existing ISBN, and displays success or error messages based on the result
+		public async void AddNewCustomer()
+		{
+			string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=Inventory;Integrated Security=True";
+			SqlConnection connection = new SqlConnection(connectionString);
+			connection.Open();
+
+			//Check if the isbn already exists
+			string query = "select count(1) from customer where customer_id = @CustomerId";
+			SqlCommand command = new SqlCommand(query, connection);
+			command.Parameters.AddWithValue("@CustomerId", cus.CustomerId);
+			int result = (int)await command.ExecuteScalarAsync();
+
+			if (result > 0)
+			{
+				await Application.Current.MainPage.DisplayAlert("Error", "The Customer ID already exists.", "OK");
+			}
+			else
+			{
+				SqlCommand cmd = new SqlCommand("insert into customer values (@CustomerId, @FirstName, @LastName, @Phone, @Email, @Note)", connection);
+
+				cmd.Parameters.AddWithValue("@CustomerId", cus.CustomerId);
+				cmd.Parameters.AddWithValue("@FirstName", cus.FirstName);
+				cmd.Parameters.AddWithValue("@LastName", cus.LastName);
+				cmd.Parameters.AddWithValue("@Phone", cus.ContactPhone);
+				cmd.Parameters.AddWithValue("@Email", cus.Email);
+				cmd.Parameters.AddWithValue("@Note", cus.Note);
+
+				cmd.ExecuteNonQuery();
+				await Application.Current.MainPage.DisplayAlert("Success", "Books Added Successfully", "OK");
+
+				ClearForm(); 
+				await ReloadCustomer(); 
+				StateHasChanged();
+			}
+		}
+
+		public async void UpdateCustomer()
+		{
+
+		}
+
+		public async void DeleteCustomer()
+		{
+			
+		}
+
+}
