@@ -203,7 +203,7 @@
 				cmd.Parameters.AddWithValue("@Note", cus.Note);
 
 				cmd.ExecuteNonQuery();
-				await Application.Current.MainPage.DisplayAlert("Success", "Books Added Successfully", "OK");
+				await Application.Current.MainPage.DisplayAlert("Success", "Customer Added Successfully", "OK");
 
 				ClearForm(); 
 				await ReloadCustomer(); 
