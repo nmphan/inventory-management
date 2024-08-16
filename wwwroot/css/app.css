@@ -8,7 +8,7 @@ a, .btn-link {
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
+    background-color: #1C2560;
     border-color: #1861ac;
 }
 
@@ -105,16 +105,46 @@ h1:focus {
 }
 
 
-.select-section{
+.select-section {
     display: flex;
     flex-direction: row;
     justify-content: space-around;
 }
 
 .customer-selection {
-    width: 400px;
+    width: 500px;
+    border: 1px solid #808080;
+    padding: 20px;
 }
 
 .equipment-selection {
+    width: 500px;
+    border: 1px solid black;
+    padding: 20px;
+}
+
+.home-container {
+    text-align: center;
+    width: 80%;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.home-button button {
     width: 400px;
+    background-color: #1C2560;
+}
+
+.date-group {
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    justify-content: center; 
+    margin: 0 auto;
+    max-width: 300px; 
+}
+
+.form-group {
+    width: 100%;
 }

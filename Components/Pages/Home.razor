@@ -1,5 +1,49 @@
 ﻿@page "/"
+@inject NavigationManager NavigationManager
 
-<h1>Hello, world!</h1>
 
-Welcome to your new app.
+
+<div class="home-container">
+    <div>
+        <h4>Hello, Admin</h4>
+    </div>
+    <div class="home-button">
+        <br />
+        <button type="button" class="btn btn-primary btn-lg btn-block" @onclick="NavigateToRental">Create Rentals</button>
+    </div>
+    <div class="home-button">
+        <br />
+        <button type="button" class="btn btn-primary btn-lg btn-block" @onclick="NavigateToCustomer">Manage Customers</button>
+    </div>
+    <div class="home-button">
+        <br />
+        <button type="button" class="btn btn-primary btn-lg btn-block" @onclick="NavigateToEquipment">Manage Equipments</button>
+    </div>
+    <div class="home-button">
+        <br />
+        <button type="button" class="btn btn-primary btn-lg btn-block" @onclick="NavigateToReport">Generate Reports</button>
+    </div>
+</div>
+
+
+@code {
+    private void NavigateToRental()
+    {
+        NavigationManager.NavigateTo("/rentals");
+    }
+
+    private void NavigateToEquipment()
+    {
+        NavigationManager.NavigateTo("/equipments");
+    }
+
+    private void NavigateToCustomer()
+    {
+        NavigationManager.NavigateTo("/customers");
+    }
+
+    private void NavigateToReport()
+    {
+        NavigationManager.NavigateTo("/reports");
+    }
+}
